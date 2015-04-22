@@ -60,18 +60,67 @@
     this.source = this.options.source;
     this.delay = this.options.delay;
     this.$menu = $(this.options.menu);
-    this.$appendTo = this.options.appendTo ? $(this.options.appendTo) : null;   
+    this.$appendTo = this.options.appendTo ? $(this.options.appendTo) : null;
     this.shown = false;
     this.listen();
     this.showHintOnFocus = typeof this.options.showHintOnFocus == 'boolean' ? this.options.showHintOnFocus : false;
     this.afterSelect = this.options.afterSelect;
     this.addItem = false;
+    this.items =[];
+    this.groups={'principal':[], 'sales':[]};
   };
 
   Typeahead.prototype = {
 
     constructor: Typeahead,
 
+    clear: function(){
+      this.items = [];
+      this.groups={'principal':[], 'sales':[]};
+    },
+    addItems: function(items, group) {
+      items = items || [];
+      group = group || 'principal';
+
+      console.log(items);
+      var that = this;
+
+      items = $.grep(items, function (item) {
+        return that.matcher(item);
+      });
+
+      items = this.sorter(items);
+
+      $.merge(this.groups[group],items);
+    },
+
+    resolve: function(){
+      var that = this;
+      this.items = $.merge(['!!!---SUGERENCIAS---!!!'],this.groups.principal);
+      this.items = $.merge(this.items,['!!!---SALES---!!!']);
+      this.items =$.merge(this.items ,this.groups.sales);
+
+      if (!this.items.length && !this.options.addItem) {
+        return this.shown ? this.hide() : this;
+      }
+
+      if (this.items.length > 0) {
+        this.$element.data('active', this.items[0]);
+      } else {
+        this.$element.data('active', null);
+      }
+
+      // Add item
+      if (this.options.addItem){
+        items.push(this.options.addItem);
+      }
+
+      if (this.options.items == 'all') {
+        return this.render(this.items).show();
+      } else {
+        return this.render(this.items.slice(0, this.options.items)).show();
+      }
+    },
     select: function () {
       var val = this.$menu.find('.active').data('value');
       this.$element.data('active', val);
@@ -132,7 +181,7 @@
       }
 
       var worker = $.proxy(function() {
-        
+
         if($.isFunction(this.source)) this.source(this.query, $.proxy(this.process, this));
         else if (this.source) {
           this.process(this.source);
@@ -155,13 +204,13 @@
       if (!items.length && !this.options.addItem) {
         return this.shown ? this.hide() : this;
       }
-      
+
       if (items.length > 0) {
         this.$element.data('active', items[0]);
       } else {
         this.$element.data('active', null);
       }
-      
+
       // Add item
       if (this.options.addItem){
         items.push(this.options.addItem);
@@ -234,7 +283,25 @@
         return i[0];
       });
 
-      if (this.autoSelect && !activeFound) {        
+      $.each(items, function(){
+        var $this = $(this);
+
+        if('!!!---SALES---!!!' === $this.text()){
+          $this.attr('role', 'header');
+          $this.addClass('typeahead-header');
+          $this.empty();
+          $this.html('Sales &oacute; F&oacute;rmulas');
+        }
+
+        if('!!!---SUGERENCIAS---!!!' === $this.text()){
+          $this.attr('role', 'header');
+          $this.addClass('typeahead-header');
+          $this.empty();
+          $this.html('Sugerencias');
+        }
+      });
+
+      if (this.autoSelect && !activeFound) {
         items.first().addClass('active');
         this.$element.data('active', items.first().data('value'));
       }
@@ -284,7 +351,7 @@
         .on('mouseenter', 'li', $.proxy(this.mouseenter, this))
         .on('mouseleave', 'li', $.proxy(this.mouseleave, this));
     },
-    
+
     destroy : function () {
       this.$element.data('typeahead',null);
       this.$element.data('active',null);
@@ -300,7 +367,7 @@
 
       this.$menu.remove();
     },
-    
+
     eventSupported: function(eventName) {
       var isSupported = eventName in this.$element;
       if (!isSupported) {
