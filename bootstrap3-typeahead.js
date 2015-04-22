@@ -82,13 +82,15 @@
       items = items || [];
       group = group || 'principal';
 
-      console.log(items);
       var that = this;
 
-      items = $.grep(items, function (item) {
+      var itemsMatcher = $.grep(items, function (item) {
         return that.matcher(item);
       });
 
+      if (itemsMatcher.length === items.length){
+        items = itemsMatcher;
+      }
       items = this.sorter(items);
 
       $.merge(this.groups[group],items);
@@ -96,6 +98,7 @@
 
     resolve: function(){
       var that = this;
+
       this.items = $.merge(['!!!---SUGERENCIAS---!!!'],this.groups.principal);
       this.items = $.merge(this.items,['!!!---SALES---!!!']);
       this.items =$.merge(this.items ,this.groups.sales);
